@@ -1,0 +1,586 @@
+Config:
+model:
+  model_name: mymodel_v1_4
+  basic_model_name: vit_base_patch16_224.augreg2_in21k_ft_in1k
+  basic_model_pretrained: true
+  hyper_vit:
+    dropout_rate: 0.1
+  vit_param:
+    img_size: 224
+    patch_size: 16
+    embed_dim: 768
+    depth: 7
+    qkv_bias: true
+    num_heads: 12
+    num_classes: 1000
+  learner_param:
+    num_classes: 1
+    num_distortions: 7
+    embed_dim: ${model.vit_param.embed_dim}
+    feature_channels:
+    - 256
+    - 512
+    - 1024
+    - 2048
+    cnn_feature_num: 4
+    interaction_block_num: ${model.vit_param.depth}
+    latent_dim: 64
+    grid_size: 7
+    cross_attn_num_heads: 4
+  feature_model:
+    name: resnet50
+    load_timm_model: true
+    out_indices:
+    - 1
+    - 2
+    - 3
+    - 4
+project_name: mymodel_v1_4
+name: minev14_kadid_pretrain_split${split_index}
+run_group: minev14_kadid_pretrain_split
+working_dir: runs/${run_group}/${name}
+random_seed: 3407
+train_test_num: 1
+num_epoch: 10
+split_index: 9
+train:
+  patch_num: 10
+  batch_size: 128
+  num_workers: 10
+test:
+  patch_num: 15
+  batch_size: 512
+  num_workers: 10
+data:
+  name: kadid10k
+  root: 
+  meta_info_file: data/meta_info/meta_info_withdist2_KADID10kDataset.csv
+  train_test_split_file: data/train_split_info/kadid10kdist_82_seed3407.pkl
+  divide_dataset_per_gpu: true
+  data_num: 10125
+  train_data_num: 8100
+  test_data_num: 2025
+  image_size: 384
+  patch_size: 224
+load:
+  resume_state_path: null
+  network_chkpt_path: runs/minev10_kadid_pretrain_split/minev10_kadid_pretrain_split0/chkpt_dir/minev10_kadid_pretrain_split0_2536.pt
+  wandb_load_path: null
+  strict_load: false
+loss:
+  fn:
+  - - plcc_loss
+    - 1.0
+dist:
+  device: cuda
+  gpus: 0
+  device_num: 1
+optimizer:
+  name: adamW
+  param:
+    lr: 0.0003
+    weight_decay: 0.01
+scheduler:
+  name: CosineAnnealingLR
+  param:
+    T_max: ${eval:'${data.train_data_num} * ${train.patch_num} * ${num_epoch} // (${train.batch_size}
+      * ${dist.device_num})'}
+    eta_min: 0
+log:
+  chkpt_dir: ${working_dir}/chkpt_dir
+  summary_interval: 1
+  net_chkpt_interval: 1
+  train_chkpt_interval: 1
+  use_wandb: true
+  wandb_save_model: false
+  wandb_init_conf:
+    project: ${project_name}
+    name: ${name}
+    entity: ${oc.env:WANDB_INIT_ENTITY}
+    mode: offline
+    save_code: true
+  use_tensorboard: false
+job_logging_cfg:
+  version: 1
+  formatters:
+    simple:
+      format: '%(message)s'
+    detailed:
+      format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+      stream: ext://sys.stdout
+    file:
+      class: logging.FileHandler
+      formatter: detailed
+      filename: logs/trainer.log
+  root:
+    level: INFO
+    handlers:
+    - console
+    - file
+  disable_existing_loggers: false
+hydra_output_dir: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/outputs/minev14_kadid_pretrain_split9-2024-10-29_23-27-42
+
+Set up train process
+Making train dataloader...
+Making test dataloader...
+Loading pretrained weights from Hugging Face hub (timm/vit_base_patch16_224.augreg2_in21k_ft_in1k)
+[timm/vit_base_patch16_224.augreg2_in21k_ft_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+[timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+Number of parameters in the model: 74672583
+Number of fine-tunning parameters in the model: 525824
+Checkpoint runs/minev10_kadid_pretrain_split/minev10_kadid_pretrain_split0/chkpt_dir/minev10_kadid_pretrain_split0_2536.pt is loaded
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_634.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_634.state
+Test PLCC 0.9103 at (epoch: 1 / step: 634)
+Test SRCC 0.9014 at (epoch: 1 / step: 634)
+Test RMSE 0.4465 at (epoch: 1 / step: 634)
+Test Loss 0.0541 at (epoch: 1 / step: 634)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_1268.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_1268.state
+Test PLCC 0.9223 at (epoch: 2 / step: 1268)
+Test SRCC 0.9135 at (epoch: 2 / step: 1268)
+Test RMSE 0.4168 at (epoch: 2 / step: 1268)
+Test Loss 0.0474 at (epoch: 2 / step: 1268)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_1902.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_1902.state
+Test PLCC 0.9229 at (epoch: 3 / step: 1902)
+Test SRCC 0.9138 at (epoch: 3 / step: 1902)
+Test RMSE 0.4153 at (epoch: 3 / step: 1902)
+Test Loss 0.0488 at (epoch: 3 / step: 1902)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_2536.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_2536.state
+Test PLCC 0.9314 at (epoch: 4 / step: 2536)
+Test SRCC 0.9226 at (epoch: 4 / step: 2536)
+Test RMSE 0.3926 at (epoch: 4 / step: 2536)
+Test Loss 0.0412 at (epoch: 4 / step: 2536)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_3170.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_3170.state
+Test PLCC 0.9372 at (epoch: 5 / step: 3170)
+Test SRCC 0.9300 at (epoch: 5 / step: 3170)
+Test RMSE 0.3762 at (epoch: 5 / step: 3170)
+Test Loss 0.0407 at (epoch: 5 / step: 3170)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_3804.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_3804.state
+Test PLCC 0.9357 at (epoch: 6 / step: 3804)
+Test SRCC 0.9279 at (epoch: 6 / step: 3804)
+Test RMSE 0.3804 at (epoch: 6 / step: 3804)
+Test Loss 0.0412 at (epoch: 6 / step: 3804)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_4438.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_4438.state
+Test PLCC 0.9375 at (epoch: 7 / step: 4438)
+Test SRCC 0.9298 at (epoch: 7 / step: 4438)
+Test RMSE 0.3754 at (epoch: 7 / step: 4438)
+Test Loss 0.0411 at (epoch: 7 / step: 4438)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_5072.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_5072.state
+Test PLCC 0.9369 at (epoch: 8 / step: 5072)
+Test SRCC 0.9289 at (epoch: 8 / step: 5072)
+Test RMSE 0.3772 at (epoch: 8 / step: 5072)
+Test Loss 0.0403 at (epoch: 8 / step: 5072)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_5706.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_5706.state
+Test PLCC 0.9359 at (epoch: 9 / step: 5706)
+Test SRCC 0.9273 at (epoch: 9 / step: 5706)
+Test RMSE 0.3800 at (epoch: 9 / step: 5706)
+Test Loss 0.0426 at (epoch: 9 / step: 5706)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_6340.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split9/chkpt_dir/minev14_kadid_pretrain_split9_6340.state
+Test PLCC 0.9366 at (epoch: 10 / step: 6340)
+Test SRCC 0.9282 at (epoch: 10 / step: 6340)
+Test RMSE 0.3778 at (epoch: 10 / step: 6340)
+Test Loss 0.0428 at (epoch: 10 / step: 6340)
+End of Train
+Config:
+model:
+  model_name: mymodel_v1_4
+  basic_model_name: vit_base_patch16_224.augreg2_in21k_ft_in1k
+  basic_model_pretrained: true
+  hyper_vit:
+    dropout_rate: 0.1
+  vit_param:
+    img_size: 224
+    patch_size: 16
+    embed_dim: 768
+    depth: 7
+    qkv_bias: true
+    num_heads: 12
+    num_classes: 1000
+  learner_param:
+    num_classes: 1
+    num_distortions: 7
+    embed_dim: ${model.vit_param.embed_dim}
+    feature_channels:
+    - 256
+    - 512
+    - 1024
+    - 2048
+    cnn_feature_num: 4
+    interaction_block_num: ${model.vit_param.depth}
+    latent_dim: 64
+    grid_size: 7
+    cross_attn_num_heads: 4
+  feature_model:
+    name: resnet50
+    load_timm_model: true
+    out_indices:
+    - 1
+    - 2
+    - 3
+    - 4
+project_name: mymodel_v1_4
+name: minev14_kadid_pretrain_split${split_index}
+run_group: minev14_kadid_pretrain_split
+working_dir: runs/${run_group}/${name}
+random_seed: 3407
+train_test_num: 1
+num_epoch: 10
+split_index: 8
+train:
+  patch_num: 10
+  batch_size: 128
+  num_workers: 10
+test:
+  patch_num: 15
+  batch_size: 512
+  num_workers: 10
+data:
+  name: kadid10k
+  root: 
+  meta_info_file: data/meta_info/meta_info_withdist2_KADID10kDataset.csv
+  train_test_split_file: data/train_split_info/kadid10kdist_82_seed3407.pkl
+  divide_dataset_per_gpu: true
+  data_num: 10125
+  train_data_num: 8100
+  test_data_num: 2025
+  image_size: 384
+  patch_size: 224
+load:
+  resume_state_path: null
+  network_chkpt_path: runs/minev10_kadid_pretrain_split/minev10_kadid_pretrain_split0/chkpt_dir/minev10_kadid_pretrain_split0_2536.pt
+  wandb_load_path: null
+  strict_load: false
+loss:
+  fn:
+  - - plcc_loss
+    - 1.0
+dist:
+  device: cuda
+  gpus: 0
+  device_num: 1
+optimizer:
+  name: adamW
+  param:
+    lr: 0.0003
+    weight_decay: 0.01
+scheduler:
+  name: CosineAnnealingLR
+  param:
+    T_max: ${eval:'${data.train_data_num} * ${train.patch_num} * ${num_epoch} // (${train.batch_size}
+      * ${dist.device_num})'}
+    eta_min: 0
+log:
+  chkpt_dir: ${working_dir}/chkpt_dir
+  summary_interval: 1
+  net_chkpt_interval: 1
+  train_chkpt_interval: 1
+  use_wandb: true
+  wandb_save_model: false
+  wandb_init_conf:
+    project: ${project_name}
+    name: ${name}
+    entity: ${oc.env:WANDB_INIT_ENTITY}
+    mode: offline
+    save_code: true
+  use_tensorboard: false
+job_logging_cfg:
+  version: 1
+  formatters:
+    simple:
+      format: '%(message)s'
+    detailed:
+      format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+      stream: ext://sys.stdout
+    file:
+      class: logging.FileHandler
+      formatter: detailed
+      filename: logs/trainer.log
+  root:
+    level: INFO
+    handlers:
+    - console
+    - file
+  disable_existing_loggers: false
+hydra_output_dir: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/outputs/minev14_kadid_pretrain_split8-2024-10-30_02-38-00
+
+Set up train process
+Making train dataloader...
+Making test dataloader...
+Loading pretrained weights from Hugging Face hub (timm/vit_base_patch16_224.augreg2_in21k_ft_in1k)
+[timm/vit_base_patch16_224.augreg2_in21k_ft_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+[timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+Number of parameters in the model: 74672583
+Number of fine-tunning parameters in the model: 525824
+Checkpoint runs/minev10_kadid_pretrain_split/minev10_kadid_pretrain_split0/chkpt_dir/minev10_kadid_pretrain_split0_2536.pt is loaded
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_634.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_634.state
+Test PLCC 0.9230 at (epoch: 1 / step: 634)
+Test SRCC 0.9198 at (epoch: 1 / step: 634)
+Test RMSE 0.4135 at (epoch: 1 / step: 634)
+Test Loss 0.0436 at (epoch: 1 / step: 634)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_1268.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_1268.state
+Test PLCC 0.9361 at (epoch: 2 / step: 1268)
+Test SRCC 0.9321 at (epoch: 2 / step: 1268)
+Test RMSE 0.3779 at (epoch: 2 / step: 1268)
+Test Loss 0.0382 at (epoch: 2 / step: 1268)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_1902.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_1902.state
+Test PLCC 0.9435 at (epoch: 3 / step: 1902)
+Test SRCC 0.9389 at (epoch: 3 / step: 1902)
+Test RMSE 0.3560 at (epoch: 3 / step: 1902)
+Test Loss 0.0354 at (epoch: 3 / step: 1902)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_2536.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_2536.state
+Test PLCC 0.9398 at (epoch: 4 / step: 2536)
+Test SRCC 0.9354 at (epoch: 4 / step: 2536)
+Test RMSE 0.3671 at (epoch: 4 / step: 2536)
+Test Loss 0.0358 at (epoch: 4 / step: 2536)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_3170.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_3170.state
+Test PLCC 0.9367 at (epoch: 5 / step: 3170)
+Test SRCC 0.9331 at (epoch: 5 / step: 3170)
+Test RMSE 0.3761 at (epoch: 5 / step: 3170)
+Test Loss 0.0364 at (epoch: 5 / step: 3170)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_3804.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_3804.state
+Test PLCC 0.9414 at (epoch: 6 / step: 3804)
+Test SRCC 0.9372 at (epoch: 6 / step: 3804)
+Test RMSE 0.3624 at (epoch: 6 / step: 3804)
+Test Loss 0.0342 at (epoch: 6 / step: 3804)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_4438.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_4438.state
+Test PLCC 0.9390 at (epoch: 7 / step: 4438)
+Test SRCC 0.9347 at (epoch: 7 / step: 4438)
+Test RMSE 0.3695 at (epoch: 7 / step: 4438)
+Test Loss 0.0356 at (epoch: 7 / step: 4438)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_5072.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_5072.state
+Test PLCC 0.9407 at (epoch: 8 / step: 5072)
+Test SRCC 0.9366 at (epoch: 8 / step: 5072)
+Test RMSE 0.3645 at (epoch: 8 / step: 5072)
+Test Loss 0.0341 at (epoch: 8 / step: 5072)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_5706.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_5706.state
+Test PLCC 0.9398 at (epoch: 9 / step: 5706)
+Test SRCC 0.9362 at (epoch: 9 / step: 5706)
+Test RMSE 0.3671 at (epoch: 9 / step: 5706)
+Test Loss 0.0346 at (epoch: 9 / step: 5706)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_6340.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split8/chkpt_dir/minev14_kadid_pretrain_split8_6340.state
+Test PLCC 0.9397 at (epoch: 10 / step: 6340)
+Test SRCC 0.9355 at (epoch: 10 / step: 6340)
+Test RMSE 0.3676 at (epoch: 10 / step: 6340)
+Test Loss 0.0351 at (epoch: 10 / step: 6340)
+End of Train
+Config:
+model:
+  model_name: mymodel_v1_4
+  basic_model_name: vit_base_patch16_224.augreg2_in21k_ft_in1k
+  basic_model_pretrained: true
+  hyper_vit:
+    dropout_rate: 0.1
+  vit_param:
+    img_size: 224
+    patch_size: 16
+    embed_dim: 768
+    depth: 7
+    qkv_bias: true
+    num_heads: 12
+    num_classes: 1000
+  learner_param:
+    num_classes: 1
+    num_distortions: 7
+    embed_dim: ${model.vit_param.embed_dim}
+    feature_channels:
+    - 256
+    - 512
+    - 1024
+    - 2048
+    cnn_feature_num: 4
+    interaction_block_num: ${model.vit_param.depth}
+    latent_dim: 64
+    grid_size: 7
+    cross_attn_num_heads: 4
+  feature_model:
+    name: resnet50
+    load_timm_model: true
+    out_indices:
+    - 1
+    - 2
+    - 3
+    - 4
+project_name: mymodel_v1_4
+name: minev14_kadid_pretrain_split${split_index}
+run_group: minev14_kadid_pretrain_split
+working_dir: runs/${run_group}/${name}
+random_seed: 3407
+train_test_num: 1
+num_epoch: 10
+split_index: 7
+train:
+  patch_num: 10
+  batch_size: 128
+  num_workers: 10
+test:
+  patch_num: 15
+  batch_size: 512
+  num_workers: 10
+data:
+  name: kadid10k
+  root: 
+  meta_info_file: data/meta_info/meta_info_withdist2_KADID10kDataset.csv
+  train_test_split_file: data/train_split_info/kadid10kdist_82_seed3407.pkl
+  divide_dataset_per_gpu: true
+  data_num: 10125
+  train_data_num: 8100
+  test_data_num: 2025
+  image_size: 384
+  patch_size: 224
+load:
+  resume_state_path: null
+  network_chkpt_path: runs/minev10_kadid_pretrain_split/minev10_kadid_pretrain_split0/chkpt_dir/minev10_kadid_pretrain_split0_2536.pt
+  wandb_load_path: null
+  strict_load: false
+loss:
+  fn:
+  - - plcc_loss
+    - 1.0
+dist:
+  device: cuda
+  gpus: 0
+  device_num: 1
+optimizer:
+  name: adamW
+  param:
+    lr: 0.0003
+    weight_decay: 0.01
+scheduler:
+  name: CosineAnnealingLR
+  param:
+    T_max: ${eval:'${data.train_data_num} * ${train.patch_num} * ${num_epoch} // (${train.batch_size}
+      * ${dist.device_num})'}
+    eta_min: 0
+log:
+  chkpt_dir: ${working_dir}/chkpt_dir
+  summary_interval: 1
+  net_chkpt_interval: 1
+  train_chkpt_interval: 1
+  use_wandb: true
+  wandb_save_model: false
+  wandb_init_conf:
+    project: ${project_name}
+    name: ${name}
+    entity: ${oc.env:WANDB_INIT_ENTITY}
+    mode: offline
+    save_code: true
+  use_tensorboard: false
+job_logging_cfg:
+  version: 1
+  formatters:
+    simple:
+      format: '%(message)s'
+    detailed:
+      format: '[%(asctime)s][%(name)s][%(levelname)s] - %(message)s'
+  handlers:
+    console:
+      class: logging.StreamHandler
+      formatter: simple
+      stream: ext://sys.stdout
+    file:
+      class: logging.FileHandler
+      formatter: detailed
+      filename: logs/trainer.log
+  root:
+    level: INFO
+    handlers:
+    - console
+    - file
+  disable_existing_loggers: false
+hydra_output_dir: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/outputs/minev14_kadid_pretrain_split7-2024-10-30_05-48-51
+
+Set up train process
+Making train dataloader...
+Making test dataloader...
+Loading pretrained weights from Hugging Face hub (timm/vit_base_patch16_224.augreg2_in21k_ft_in1k)
+[timm/vit_base_patch16_224.augreg2_in21k_ft_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+Loading pretrained weights from Hugging Face hub (timm/resnet50.a1_in1k)
+[timm/resnet50.a1_in1k] Safe alternative available for 'pytorch_model.bin' (as 'model.safetensors'). Loading weights using safetensors.
+Number of parameters in the model: 74672583
+Number of fine-tunning parameters in the model: 525824
+Checkpoint runs/minev10_kadid_pretrain_split/minev10_kadid_pretrain_split0/chkpt_dir/minev10_kadid_pretrain_split0_2536.pt is loaded
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_634.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_634.state
+Test PLCC 0.8974 at (epoch: 1 / step: 634)
+Test SRCC 0.8919 at (epoch: 1 / step: 634)
+Test RMSE 0.4825 at (epoch: 1 / step: 634)
+Test Loss 0.0508 at (epoch: 1 / step: 634)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_1268.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_1268.state
+Test PLCC 0.9183 at (epoch: 2 / step: 1268)
+Test SRCC 0.9137 at (epoch: 2 / step: 1268)
+Test RMSE 0.4329 at (epoch: 2 / step: 1268)
+Test Loss 0.0435 at (epoch: 2 / step: 1268)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_1902.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_1902.state
+Test PLCC 0.9309 at (epoch: 3 / step: 1902)
+Test SRCC 0.9259 at (epoch: 3 / step: 1902)
+Test RMSE 0.3993 at (epoch: 3 / step: 1902)
+Test Loss 0.0407 at (epoch: 3 / step: 1902)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_2536.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_2536.state
+Test PLCC 0.9305 at (epoch: 4 / step: 2536)
+Test SRCC 0.9256 at (epoch: 4 / step: 2536)
+Test RMSE 0.4005 at (epoch: 4 / step: 2536)
+Test Loss 0.0396 at (epoch: 4 / step: 2536)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_3170.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_3170.state
+Test PLCC 0.9254 at (epoch: 5 / step: 3170)
+Test SRCC 0.9195 at (epoch: 5 / step: 3170)
+Test RMSE 0.4144 at (epoch: 5 / step: 3170)
+Test Loss 0.0421 at (epoch: 5 / step: 3170)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_3804.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_3804.state
+Test PLCC 0.9299 at (epoch: 6 / step: 3804)
+Test SRCC 0.9253 at (epoch: 6 / step: 3804)
+Test RMSE 0.4022 at (epoch: 6 / step: 3804)
+Test Loss 0.0394 at (epoch: 6 / step: 3804)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_4438.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_4438.state
+Test PLCC 0.9229 at (epoch: 7 / step: 4438)
+Test SRCC 0.9169 at (epoch: 7 / step: 4438)
+Test RMSE 0.4211 at (epoch: 7 / step: 4438)
+Test Loss 0.0420 at (epoch: 7 / step: 4438)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_5072.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_5072.state
+Test PLCC 0.9239 at (epoch: 8 / step: 5072)
+Test SRCC 0.9184 at (epoch: 8 / step: 5072)
+Test RMSE 0.4183 at (epoch: 8 / step: 5072)
+Test Loss 0.0428 at (epoch: 8 / step: 5072)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_5706.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_5706.state
+Test PLCC 0.9232 at (epoch: 9 / step: 5706)
+Test SRCC 0.9170 at (epoch: 9 / step: 5706)
+Test RMSE 0.4202 at (epoch: 9 / step: 5706)
+Test Loss 0.0430 at (epoch: 9 / step: 5706)
+Saved network checkpoint to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_6340.pt
+Saved training state to: runs/minev14_kadid_pretrain_split/minev14_kadid_pretrain_split7/chkpt_dir/minev14_kadid_pretrain_split7_6340.state
