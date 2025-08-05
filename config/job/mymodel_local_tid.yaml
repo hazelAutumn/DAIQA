@@ -1,0 +1,79 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - /dist: single_gpu
+  - /optimizer: adamW
+  - /scheduler: cosineAnnealingLR
+  - /log: train
+#  - /load: scratch
+#  - /loss: mymodel_v1_pretrain
+#  - /model: mymodel_v1_2
+
+#model
+model:
+  model_name: mymodel_local
+  basic_model_name: vit_base_patch16_224.augreg2_in21k_ft_in1k
+  basic_model_pretrained: true
+  hyper_vit:
+    dropout_rate: 0.1
+  vit_param:
+    img_size: 224
+    patch_size: 16
+    embed_dim: 768
+    depth: 7
+    qkv_bias: true
+    num_heads: 12
+    num_classes: 1000
+ 
+
+# job general configs
+project_name: mymodel_local
+name: mymodel_local2_tid_split${split_index}
+run_group: mymodel_local2_tid_split
+working_dir: runs/${run_group}/${name}
+random_seed: 3407
+train_test_num: 1
+num_epoch: 10
+split_index: 0
+
+# training configs
+train:
+  patch_num: 10
+  batch_size: 128
+  num_workers: 10
+
+# test configs
+test:
+  patch_num: 15
+  batch_size: 512
+  num_workers: 10
+
+# data
+data:
+  name: tid2013
+  root: data/tid2013
+  meta_info_file: data/meta_info/meta_info_withdist_TID2013Dataset.csv
+  train_test_split_file: data/train_split_info/tid2013_82_seed3407.pkl
+  divide_dataset_per_gpu: true
+  data_num: 3000
+  train_data_num: 2400
+  test_data_num: 600
+  image_size: 384
+  patch_size: 224
+
+
+
+load:
+  resume_state_path: null
+  network_chkpt_path: null
+  wandb_load_path: null
+  strict_load: false
+# loss
+loss:
+  fn:
+  - [plcc_loss, 1.0]
+
+
+# v12 of using only quality prediction, 
+# and a pretrained on classification of distortion

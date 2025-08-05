@@ -1,0 +1,3 @@
+fn:
+  - [plcc_loss, 0.5]
+  - [cross_entropy, 0.5]

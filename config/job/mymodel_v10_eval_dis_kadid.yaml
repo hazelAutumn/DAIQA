@@ -1,0 +1,89 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - /dist: single_gpu
+  - /optimizer: adamW
+  - /scheduler: cosineAnnealingLR
+  - /log: train
+
+#model
+model:
+  model_name: mymodel_v1_0
+  basic_model_name: vit_base_patch16_224.augreg2_in21k_ft_in1k
+  basic_model_pretrained: true
+  hyper_vit:
+    dropout_rate: 0.1
+  vit_param:
+    img_size: 224
+    patch_size: 16
+    embed_dim: 768
+    depth: 7
+    qkv_bias: true
+    num_heads: 12
+    num_classes: 1000
+  learner_param:
+    num_classes: 1
+    num_distortions: 7 #24 for tid, 25 for kadid
+    embed_dim: ${model.vit_param.embed_dim}
+    feature_channels: [256, 512, 1024, 2048]
+    cnn_feature_num: 4
+    interaction_block_num: ${model.vit_param.depth}
+    latent_dim: 64
+    grid_size: 7
+    cross_attn_num_heads: 4
+  feature_model:
+    name: resnet50
+    load_timm_model: true
+    out_indices: [1, 2, 3, 4]
+
+# job general configs
+project_name: mymodel_v1_0
+name: mymodel_v1_0_kadid_pretrain_split${split_index}
+run_group: mymodel_v1_0_kadid_pretrain_split
+working_dir: runs/${run_group}/${name}
+random_seed: 3407
+train_test_num: 1
+num_epoch: 10
+split_index: 0
+
+# training configs
+train:
+  patch_num: 10
+  batch_size: 128
+  num_workers: 10
+
+# test configs
+test:
+  patch_num: 15
+  batch_size: 512
+  num_workers: 10
+
+# data
+data:
+  name: kadid10k_1d
+  root: data/kadid10k
+  meta_info_file: data/meta_info/meta_info_withdist2_KADID10kDataset.csv #for each disttortion group
+  train_test_split_file: data/train_split_info/kadid10k_fordistortion_seed3407.pkl
+  divide_dataset_per_gpu: true
+  data_num: 10125
+  train_data_num: 8100
+  test_data_num: 2025
+  image_size: 384
+  patch_size: 224
+
+
+
+load:
+  resume_state_path: null
+  network_chkpt_path: ckpts/minev10_kadis7_full_split2_28125.pt
+  wandb_load_path: null
+  strict_load: false
+# loss
+loss:
+  fn:
+  - [cross_entropy, 1.0]
+
+
+# v12 of using only quality prediction, 
+# and a pretrained on classification of distortion
